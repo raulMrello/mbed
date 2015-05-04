@@ -537,6 +537,14 @@ class NUCLEO_F103RB(Target):
         self.supported_form_factors = ["ARDUINO", "MORPHO"]
         self.detect_code = ["0700"]
 
+class STM32F103C8T6(Target):
+    def __init__(self):
+        Target.__init__(self)
+        self.core = "Cortex-M3"
+        self.extra_labels = ['STM', 'STM32F1', 'STM32F103C8T6']
+        self.supported_toolchains = ["uARM"]
+        self.default_toolchain = "uARM"
+
 class NUCLEO_F302R8(Target):
     def __init__(self):
         Target.__init__(self)
@@ -1252,6 +1260,7 @@ TARGETS = [
     NUCLEO_F072RB(),
     NUCLEO_F091RC(),
     NUCLEO_F103RB(),
+	STM32F103C8T6(),
     NUCLEO_F302R8(),
     NUCLEO_F303RE(),
     NUCLEO_F334R8(),

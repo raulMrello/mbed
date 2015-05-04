@@ -124,24 +124,6 @@ static inline uint16_t adc_read(analogin_t *obj)
         case PB_1:
             sConfig.Channel = ADC_CHANNEL_9;
             break;
-        case PC_0:
-            sConfig.Channel = ADC_CHANNEL_10;
-            break;
-        case PC_1:
-            sConfig.Channel = ADC_CHANNEL_11;
-            break;
-        case PC_2:
-            sConfig.Channel = ADC_CHANNEL_12;
-            break;
-        case PC_3:
-            sConfig.Channel = ADC_CHANNEL_13;
-            break;
-        case PC_4:
-            sConfig.Channel = ADC_CHANNEL_14;
-            break;
-        case PC_5:
-            sConfig.Channel = ADC_CHANNEL_15;
-            break;
         default:
             return 0;
     }
