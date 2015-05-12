@@ -281,6 +281,9 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
         }
 		// added to support line break, idle interrupt handling
 		else if (irq == IdleIrq){ 
+			// dummy read SR, DR to clear flag previous activation
+			uint32_t dummyRead = UartHandle.Instance->SR;
+			dummyRead = UartHandle.Instance->DR;
             __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_IDLE);
         }
 
