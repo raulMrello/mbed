@@ -200,6 +200,17 @@ static void uart_irq(UARTName name, int id)
             irq_handler(serial_irq_ids[id], RxIrq);
             __HAL_UART_CLEAR_FLAG(&UartHandle, UART_FLAG_RXNE);
         }
+		// added to support ErrIrq handling
+        if (__HAL_UART_GET_FLAG(&UartHandle, (UART_FLAG_ORE|UART_FLAG_NE|UART_FLAG_FE|UART_FLAG_PE)) != RESET) {
+            irq_handler(serial_irq_ids[id], ErrIrq);
+            __HAL_UART_CLEAR_FLAG(&UartHandle, (UART_FLAG_ORE|UART_FLAG_NE|UART_FLAG_FE|UART_FLAG_PE));
+        }
+		// added to support LineIrq handling
+        if (__HAL_UART_GET_FLAG(&UartHandle, (UART_FLAG_LBD|UART_FLAG_IDLE)) != RESET) {
+            irq_handler(serial_irq_ids[id], LineIrq);
+            __HAL_UART_CLEAR_FLAG(&UartHandle, (UART_FLAG_LBD|UART_FLAG_IDLE));
+        }
+		
     }
 }
 
@@ -250,8 +261,17 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
 
         if (irq == RxIrq) {
             __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_RXNE);
-        } else { // TxIrq
+        } 
+		else if (irq == TxIrq){ 
             __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_TC);
+        }
+		// added to support Error interrupt handling
+		else if (irq == ErrIrq){ 
+            __HAL_UART_ENABLE_IT(&UartHandle, (UART_IT_PE|UART_IT_ERR));
+        }
+		// added to support line break, idle interrupt handling
+		else if (irq == LineIrq){ 
+            __HAL_UART_ENABLE_IT(&UartHandle, (UART_IT_LBD|UART_IT_IDLE));
         }
 
         NVIC_SetVector(irq_n, vector);
@@ -265,10 +285,21 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
             __HAL_UART_DISABLE_IT(&UartHandle, UART_IT_RXNE);
             // Check if TxIrq is disabled too
             if ((UartHandle.Instance->CR1 & USART_CR1_TCIE) == 0) all_disabled = 1;
-        } else { // TxIrq
+        } 
+		else if(irq == TxIrq){ 
             __HAL_UART_DISABLE_IT(&UartHandle, UART_IT_TC);
             // Check if RxIrq is disabled too
             if ((UartHandle.Instance->CR1 & USART_CR1_RXNEIE) == 0) all_disabled = 1;
+        }
+		else if(irq == ErrIrq){ 
+            __HAL_UART_DISABLE_IT(&UartHandle, (UART_IT_PE|UART_IT_ERR));
+            // Check if TxIrq and RxIrq are disabled too
+            if ((UartHandle.Instance->CR1 & USART_CR1_TCIE) == 0 && (UartHandle.Instance->CR1 & USART_CR1_RXNEIE) == 0) all_disabled = 1;
+        }
+		else if(irq == LineIrq){ 
+            __HAL_UART_DISABLE_IT(&UartHandle, (UART_IT_LBD|UART_IT_IDLE));
+            // Check if TxIrq and RxIrq are disabled too
+            if ((UartHandle.Instance->CR1 & USART_CR1_TCIE) == 0 && (UartHandle.Instance->CR1 & USART_CR1_RXNEIE) == 0) all_disabled = 1;
         }
 
         if (all_disabled) NVIC_DisableIRQ(irq_n);
