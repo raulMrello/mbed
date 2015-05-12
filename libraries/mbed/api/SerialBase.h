@@ -55,7 +55,7 @@ public:
         RxIrq = 0,
         TxIrq,
 		ErrIrq,		///< Added to support ORE,NE,FE,PE error handling
-		LineIrq		///< Added to supoort LineBreak and LineIdle handling
+		IdleIrq		///< Added to support LineIdle handling
     };
 
     enum Flow {

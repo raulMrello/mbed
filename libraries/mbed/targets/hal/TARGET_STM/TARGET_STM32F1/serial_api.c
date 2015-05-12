@@ -190,27 +190,37 @@ void serial_format(serial_t *obj, int data_bits, SerialParity parity, int stop_b
 
 static void uart_irq(UARTName name, int id)
 {
+ 	volatile uint32_t dummyRead;
     UartHandle.Instance = (USART_TypeDef *)name;
     if (serial_irq_ids[id] != 0) {
-        if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_TC) != RESET) {
+		/*   - TC pending bit can be also cleared by software sequence: a read 
+		 *     operation to USART_SR register followed by a write operation to USART_DR register 
+		 */
+        if (__HAL_UART_GET_IT_SOURCE(&UartHandle, UART_IT_TC) != RESET) {
             irq_handler(serial_irq_ids[id], TxIrq);
             __HAL_UART_CLEAR_FLAG(&UartHandle, UART_FLAG_TC);
         }
-        if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_RXNE) != RESET) {
+		//   - RXNE pending bit can be also cleared by a read to the USART_DR register 
+        if (__HAL_UART_GET_IT_SOURCE(&UartHandle, UART_IT_RXNE) != RESET) {
             irq_handler(serial_irq_ids[id], RxIrq);
             __HAL_UART_CLEAR_FLAG(&UartHandle, UART_FLAG_RXNE);
         }
-		// added to support ErrIrq handling
-        if (__HAL_UART_GET_FLAG(&UartHandle, (UART_FLAG_ORE|UART_FLAG_NE|UART_FLAG_FE|UART_FLAG_PE)) != RESET) {
+		/*   - PE (Parity error), FE (Framing error), NE (Noise error), ORE (OverRun error) and IDLE (Idle line detected) pending bits are cleared by 
+		 *     software sequence: a read operation to USART_SR register followed by a read operation to USART_DR 
+		 */
+        if (__HAL_UART_GET_IT_SOURCE(&UartHandle, UART_IT_ERR) != RESET) {
             irq_handler(serial_irq_ids[id], ErrIrq);
-            __HAL_UART_CLEAR_FLAG(&UartHandle, (UART_FLAG_ORE|UART_FLAG_NE|UART_FLAG_FE|UART_FLAG_PE));
+            dummyRead = UartHandle.Instance->SR;
+			dummyRead = UartHandle.Instance->DR;
         }
-		// added to support LineIrq handling
-        if (__HAL_UART_GET_FLAG(&UartHandle, (UART_FLAG_LBD|UART_FLAG_IDLE)) != RESET) {
-            irq_handler(serial_irq_ids[id], LineIrq);
-            __HAL_UART_CLEAR_FLAG(&UartHandle, (UART_FLAG_LBD|UART_FLAG_IDLE));
-        }
-		
+		/*   - IDLE (Idle line detected) pending bits are cleared by software sequence: a read operation 
+		 *	   to USART_SR register followed by a read operation to USART_DR 
+		 */
+        if (__HAL_UART_GET_IT_SOURCE(&UartHandle, UART_IT_IDLE)  != RESET) {
+            irq_handler(serial_irq_ids[id], IdleIrq);
+            dummyRead = UartHandle.Instance->SR;
+			dummyRead = UartHandle.Instance->DR;
+        }			
     }
 }
 
@@ -270,8 +280,8 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
             __HAL_UART_ENABLE_IT(&UartHandle, (UART_IT_PE|UART_IT_ERR));
         }
 		// added to support line break, idle interrupt handling
-		else if (irq == LineIrq){ 
-            __HAL_UART_ENABLE_IT(&UartHandle, (UART_IT_LBD|UART_IT_IDLE));
+		else if (irq == IdleIrq){ 
+            __HAL_UART_ENABLE_IT(&UartHandle, UART_IT_IDLE);
         }
 
         NVIC_SetVector(irq_n, vector);
@@ -296,8 +306,8 @@ void serial_irq_set(serial_t *obj, SerialIrq irq, uint32_t enable)
             // Check if TxIrq and RxIrq are disabled too
             if ((UartHandle.Instance->CR1 & USART_CR1_TCIE) == 0 && (UartHandle.Instance->CR1 & USART_CR1_RXNEIE) == 0) all_disabled = 1;
         }
-		else if(irq == LineIrq){ 
-            __HAL_UART_DISABLE_IT(&UartHandle, (UART_IT_LBD|UART_IT_IDLE));
+		else if(irq == IdleIrq){ 
+            __HAL_UART_DISABLE_IT(&UartHandle, UART_IT_IDLE);
             // Check if TxIrq and RxIrq are disabled too
             if ((UartHandle.Instance->CR1 & USART_CR1_TCIE) == 0 && (UartHandle.Instance->CR1 & USART_CR1_RXNEIE) == 0) all_disabled = 1;
         }
