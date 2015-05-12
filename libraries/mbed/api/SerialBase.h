@@ -53,7 +53,9 @@ public:
 
     enum IrqType {
         RxIrq = 0,
-        TxIrq
+        TxIrq,
+		ErrIrq,		///< Added to support ORE,NE,FE,PE error handling
+		LineIrq		///< Added to supoort LineBreak and LineIdle handling
     };
 
     enum Flow {
@@ -211,7 +213,7 @@ protected:
 #endif
 
     serial_t        _serial;
-    FunctionPointer _irq[2];
+    FunctionPointer _irq[4];	///< Changed from 2 to 4 to support ErrIrq and LineIrq (see enum IrqType)
     int             _baud;
 
 };
